@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <script src="https://libs.cartocdn.com/carto-vl/v1.2.5/carto-vl.min.js"></script>
+    <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.52.0/mapbox-gl.js"></script>
+    <link href="https://api.tiles.mapbox.com/mapbox-gl-js/v0.52.0/mapbox-gl.css" rel="stylesheet" />
+    <link href="https://carto.com/developers/carto-vl/v1.2.5/examples/maps/style.css" rel="stylesheet">
+</head>
+<body>
+<style>
+        aside.toolbox {
+          background-color: rgba(255, 255, 255, 0.9);
+          border-radius: 5px;
+          display: block;
+          font-family: 'Roboto';
+          height: auto;
+          padding: 0 24px 24px 24px;
+          position: absolute;
+          right: 12px;
+          top: 12px;
+          width: 250px;
+          font-size: 12px;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            border: 1px solid white;
+            background: transparent;
+            border: none;
+
+            cursor: pointer;
+            flex: 1;
+            padding: auto 10px;
+
+            margin: auto 5px;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            height: 3px;
+            background: #1785FB;
+            border: none;
+            border-radius: 3px;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            border: none;
+            height: 10px;
+            width: 10px;
+            border-radius: 50%;
+            background: #1785FB;
+            margin-top: -4px;
+        }
+
+        input[type=range]:focus {
+            outline: none;
+        }
+
+        input[type=range]::-moz-range-track {
+            height: 3px;
+            background: #1785FB;
+            border: none;
+            border-radius: 3px;
+        }
+
+        input[type=range]::-moz-range-thumb {
+            border: none;
+            height: 10px;
+            width: 10px;
+            border-radius: 50%;
+            background: #1785FB;
+        }
+
+        input[type=range].white-thumb::-moz-range-thumb {
+            border-radius: 50%;
+            border: 2px solid #1785FB;
+            background: white;
+            height: 12px;
+            width: 12px;
+        }
+
+        input[type=range].white-thumb::-webkit-slider-thumb {
+            border-radius: 50%;
+            border: 3px solid #1785FB;
+            background: white;
+            height: 15px;
+            width: 15px;
+            margin-top: -6px;
+        }
+
+        input[type=range].white-thumb::-ms-thumb {
+            border-radius: 50%;
+            border: 2px solid #1785FB;
+            background: white;
+            height: 12px;
+            width: 12px;
+        }
+
+        input[type=range]:-moz-focusring {
+            outline: 1px solid white;
+            outline-offset: -1px;
+        }
+
+        input[type=range]::-ms-track {
+            height: 3px;
+            background: transparent;
+            border-color: transparent;
+            border-width: 6px 0;
+            color: transparent;
+        }
+
+        input[type=range]::-ms-fill-lower {
+            background: #1785FB;
+        }
+
+        input[type="range"]::-moz-range-progress {
+            background: #1785FB;
+        }
+
+        input[type=range]::-ms-fill-upper {
+            background: #ccc;
+        }
+
+        input[type="range"]::-moz-range-track {
+            background: #ccc;
+        }
+
+        input[type=range]::-ms-thumb {
+            border: none;
+            height: 10px;
+            width: 10px;
+            border-radius: 50%;
+            background: #1785FB;
+        }
+
+        button.toolbox-button {
+            border-radius: 4px;
+            border: 0;
+            box-shadow: none;
+            color: #fff;
+            cursor: pointer;
+            display: inline-flex;
+            font: 500 12px/20px 'Roboto';
+            margin: 12px 12px 0 0;
+            padding: 4px 20px;
+        }
+
+        #js-play-button {
+            background-color: #1785FB;
+            background-position: center;
+        }
+
+        #js-pause-button {
+            background-color: #1785FB;
+            background-position: center;
+        }
+    </style>
+    
+    <!-- Add map container -->
+    <div id="map"></div>
+      <aside class="toolbox">
+        <header>
+            <h1>Animation controls</h1>
+        </header>
+        <section>
+            <p>Progress <input type="range" id="js-progress-range" min="0" max="1" step="0.01"></p>
+            <p>Duration <input type="range" id="js-duration-range" class="white-thumb" min="1" max="10" step="1"></p>
+        </section>
+        <section>
+            <p>Current: <span id="js-current-time" class="open-sans">1999</span></p>
+        </section>
+        <section>
+            <button id="js-play-button" class="toolbox-button">Play</button>
+            <button id="js-pause-button" class="toolbox-button">Pause</button>
+        </section>
+    </aside>
+    <script>
+        // Add basemap and set properties
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: carto.basemaps.darkmatter,
+            center: [-7.017505, 22.287860],
+            zoom: 1
+        });
+        
+        const nav = new mapboxgl.NavigationControl();
+        map.addControl(nav, 'top-left');
+        //** CARTO VL functionality begins here **//
+
+        // Define user
+        carto.setDefaultAuth({
+            username: 'alicehua11',
+            apiKey: 'b4337a0847cc2927a03ab328b07324e0f5c57f89'
+        });
+
+        // Define source
+        const source = new carto.source.Dataset('table_1999_2017');
+
+        // Define Viz object and custom style
+        const viz = new carto.Viz(`
+            @duration: 20
+            @animation: animation($iyear, @duration, fade(0.8,0.8)); 
+            filter: @animation
+            color: ramp(($region_txt), bold)
+            width: 4
+            strokeWidth:.5
+            resolution:1
+        `);
+        
+        // Define map layer
+        const layer = new carto.Layer('layer', source, viz);
+       
+     
+        const $progressRange = document.getElementById('js-progress-range');
+        const $playButton = document.getElementById('js-play-button');
+        const $pauseButton = document.getElementById('js-pause-button');
+        const $durationRange = document.getElementById('js-duration-range');
+        const $currentTime = document.getElementById('js-current-time');
+
+        // Listen to interaction events
+        $playButton.addEventListener('click', () => {
+            viz.variables.animation.play();
+        });
+
+        $pauseButton.addEventListener('click', () => {
+            viz.variables.animation.pause();
+        });
+
+        $durationRange.addEventListener('change', () => {
+            viz.variables.duration = parseInt($durationRange.value, 10);
+        });
+
+        // Update progress each 100 milliseconds
+        function updateProgress() {
+            $progressRange.value = viz.variables.animation.getProgressPct();
+            $currentTime.innerText = viz.variables.animation.getProgressValue();
+        }
+
+        setInterval(updateProgress, 1000);
+
+        layer.addTo(map);
+
+            
+    </script>
+</body>
+</html>
